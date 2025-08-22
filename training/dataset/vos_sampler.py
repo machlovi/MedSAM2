@@ -89,17 +89,44 @@ class EvalSampler(VOSSampler):
         super().__init__()
 
     def sample(self, video, segment_loader, epoch=None):
-        """
-        Sampling all the frames and all the objects
-        """
-        if self.sort_frames:
-            # ordered by frame id
-            frames = sorted(video.frames, key=lambda x: x.frame_idx)
-        else:
-            # use the original order
-            frames = video.frames
-        object_ids = segment_loader.load(frames[0].frame_idx).keys()
-        if len(object_ids) == 0:
-            raise Exception("First frame of the video has no objects")
 
-        return SampledFramesAndObjects(frames=frames, object_ids=object_ids)
+        frames = sorted(video.frames, key=lambda x: x.frame_idx)
+        middle_idx = len(frames) // 2
+        selected_frame = frames[middle_idx]
+
+        object_ids = segment_loader.load(selected_frame.frame_idx).keys()
+        if len(object_ids) == 0:
+            raise Exception("Middle frame has no objects")
+
+        return SampledFramesAndObjects(frames=[selected_frame], object_ids=object_ids)
+
+
+    # def sample(self, video, segment_loader, epoch=None):
+    #     """
+    #     Sampling all the frames and all the objects
+    #     """
+    #     if self.sort_frames:
+    #         # ordered by frame id
+    #         frames = sorted(video.frames, key=lambda x: x.frame_idx)
+    #     else:
+    #         # use the original order
+    #         frames = video.frames
+    #     object_ids = segment_loader.load(frames[0].frame_idx).keys()
+    #     if len(object_ids) == 0:
+    #         raise Exception("First frame of the video has no objects")
+
+    #     return SampledFramesAndObjects(frames=frames, object_ids=object_ids)
+
+
+class SliceSampler(VOSSampler):
+    def __init__(self, slice_indices=None):
+        super().__init__()
+        self.slice_indices = slice_indices or []
+
+    def sample(self, video, segment_loader, epoch=None):
+        frames = sorted(video.frames, key=lambda x: x.frame_idx)
+        selected_frames = [frames[i] for i in self.slice_indices if i < len(frames)]
+
+        object_ids = segment_loader.load(selected_frames[0].frame_idx).keys()
+        return SampledFramesAndObjects(frames=selected_frames, object_ids=object_ids)
+

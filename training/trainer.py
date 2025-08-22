@@ -13,7 +13,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional
-
+import wandb
 import numpy as np
 
 import torch
@@ -21,6 +21,9 @@ import torch.distributed as dist
 import torch.nn as nn
 from hydra.utils import instantiate
 from iopath.common.file_io import g_pathmgr
+
+from omegaconf import OmegaConf
+
 
 from training.optimizer import construct_optimizer
 
@@ -136,6 +139,145 @@ class LoggingConf:
     log_visual_frequency: int = 100
     scalar_keys_to_log: Optional[Dict[str, Any]] = None
     log_batch_stats: bool = False
+class DualLogger:
+    def __init__(self, base_logger, wandb_run=None, rank=0):
+        self.base = base_logger
+        self.wandb = wandb_run
+        self.rank = rank
+        # Track separate step counters for different metric types
+        self.step_counters = {
+            'train_steps': 0,
+            'val_steps': 0, 
+            'epoch_steps': 0
+        }
+
+    def log(self, key: str, value, step: int, phase: str = None):
+        self.base.log(key, value, step)
+        if self.wandb is not None and self.rank == 0:
+            if phase:
+                wandb_key = f"{phase}/{key}"
+                # Determine which step counter to use based on phase
+                if phase.startswith('epoch/'):
+                    # For epoch metrics, use epoch counter
+                    wandb_step = self.step_counters['epoch_steps'] 
+                    self.step_counters['epoch_steps'] = max(self.step_counters['epoch_steps'], step)
+                elif phase == 'train':
+                    wandb_step = step
+                    self.step_counters['train_steps'] = max(self.step_counters['train_steps'], step)
+                elif phase == 'val':
+                    wandb_step = step
+                    self.step_counters['val_steps'] = max(self.step_counters['val_steps'], step)
+                else:
+                    wandb_step = step
+            else:
+                wandb_key = key
+                wandb_step = step
+                
+            self.wandb.log({wandb_key: value}, step=wandb_step)
+
+    
+
+    def log_dict(self, d: Dict[str, Any], step: int, phase: str = None):
+        self.base.log_dict(d, step)
+        if self.wandb is not None and self.rank == 0:
+            wandb_dict = {}
+            
+            if phase:
+                # Determine step counter based on phase
+                if phase.startswith('epoch/'):
+                    wandb_step = self.step_counters['epoch_steps']
+                    self.step_counters['epoch_steps'] += 1
+                elif phase == 'train':
+                    wandb_step = step
+                    self.step_counters['train_steps'] = max(self.step_counters['train_steps'], step)
+
+                elif phase == 'val':
+                    self.step_counters['val_steps'] += 1
+                    wandb_step = self.step_counters['val_steps']
+                    self.step_counters['val_steps'] = max(self.step_counters['val_steps'], step)
+                else:
+                    wandb_step = step
+                    
+                wandb_dict = {f"{phase}/{k}": v for k, v in d.items()}
+            else:
+                wandb_dict = d
+                wandb_step = step
+                
+            if wandb_dict:
+                self.wandb.log(wandb_dict, step=wandb_step)
+
+class DualLogger:
+    def __init__(self, base_logger, wandb_run=None, rank=0):
+        self.base = base_logger
+        self.wandb = wandb_run
+        self.rank = rank
+        self.step_counters = {
+            'train_steps': 0,
+            'val_steps': 0,
+            'epoch_steps': 0
+        }
+
+    def log(self, key: str, value, step: int, phase: str = None):
+        self.base.log(key, value, step)
+        if self.wandb is not None and self.rank == 0:
+            wandb_dict = {}
+            wandb_key = f"{phase}/{key}" if phase else key
+
+            if phase:
+                if phase.startswith('epoch/'):
+                    self.step_counters['epoch_steps'] = max(self.step_counters['epoch_steps'], step)
+                    wandb_dict = {wandb_key: value, "epoch_step": self.step_counters['epoch_steps']}
+                elif phase == 'train':
+                    self.step_counters['train_steps'] = max(self.step_counters['train_steps'], step)
+                    wandb_dict = {wandb_key: value, "train_step": self.step_counters['train_steps']}
+                elif phase == 'val':
+                    self.step_counters['val_steps'] = max(self.step_counters['val_steps'], step)
+                    wandb_dict = {wandb_key: value, "val_step": self.step_counters['val_steps']}
+                else:
+                    wandb_dict = {wandb_key: value}
+            else:
+                wandb_dict = {wandb_key: value}
+
+            self.wandb.log(wandb_dict)
+
+    def log_dict(self, d: Dict[str, Any], step: int, phase: str = None):
+        self.base.log_dict(d, step)
+        if self.wandb is not None and self.rank == 0:
+            wandb_dict = {}
+
+            if phase:
+                if phase.startswith('epoch/'):
+                    self.step_counters['epoch_steps'] = max(self.step_counters['epoch_steps'], step)
+                    wandb_dict = {f"{phase}/{k}": v for k, v in d.items()}
+                    wandb_dict["epoch_step"] = self.step_counters['epoch_steps']
+                elif phase == 'train':
+                    self.step_counters['train_steps'] = max(self.step_counters['train_steps'], step)
+                    wandb_dict = {f"train/{k}": v for k, v in d.items()}
+                    wandb_dict["train_step"] = self.step_counters['train_steps']
+                elif phase == 'val':
+                    self.step_counters['val_steps'] = max(self.step_counters['val_steps'], step)
+                    wandb_dict = {f"val/{k}": v for k, v in d.items()}
+                    wandb_dict["val_step"] = self.step_counters['val_steps']
+                else:
+                    wandb_dict = d
+            else:
+                wandb_dict = d
+
+            if wandb_dict:
+                self.wandb.log(wandb_dict)
+
+
+def flatten_dict(d, parent_key='', sep='/'):
+    items = {}
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.update(flatten_dict(v, new_key, sep=sep))
+        else:
+            items[new_key] = v
+    return items
+
+
 
 
 class Trainer:
@@ -188,6 +330,7 @@ class Trainer:
         self._setup_device(accelerator)
 
         self._setup_torch_dist_and_backend(cuda, distributed)
+        self.global_step = 0   # <--- add this
 
         makedir(self.logging_conf.log_dir)
         setup_logging(
@@ -475,10 +618,15 @@ class Trainer:
             )
 
         if self.steps[phase] % self.logging_conf.log_scalar_frequency == 0:
+            step_counter_name = f"{phase}_step" 
+            self.logger.log(step_counter_name, self.steps[phase], self.steps[phase])
+
+
             self.logger.log(
                 loss_log_str,
                 loss,
                 self.steps[phase],
+                phase=phase
             )
 
         self.steps[phase] += 1
@@ -524,13 +672,28 @@ class Trainer:
         if self.mode in ["train", "train_only"]:
             self.train_dataset = instantiate(self.data_conf.train)
 
+
+
     def run_train(self):
+        best_val_loss = float('inf')
+        patience_counter = 0
+        early_stop_patience = 10  # 🔧 You can expose this via config if needed
+        
 
         while self.epoch < self.max_epochs:
             dataloader = self.train_dataset.get_loader(epoch=int(self.epoch))
             barrier()
             outs = self.train_epoch(dataloader)
-            self.logger.log_dict(outs, self.epoch)  # Logged only on rank 0
+            # epoch_outs = {f"epoch/{k}": v for k, v in outs.items()}
+
+            # self.logger.log_dict(outs, self.epoch)  # Logged only on rank 0
+      
+            # self.logger.log_dict(outs, self.epoch, phase="epoch/train")
+            self.logger.log_dict(outs, step=self.global_step, phase="train")
+
+
+
+
 
             # log train to text file.
             if self.distributed_rank == 0:
@@ -548,8 +711,32 @@ class Trainer:
 
             # Run val, not running on last epoch since will run after the
             # loop anyway
+            # if self.is_intermediate_val_epoch(self.epoch):
+            #     self.run_val()
+
+
+            ## add early stopping,
             if self.is_intermediate_val_epoch(self.epoch):
-                self.run_val()
+                val_outs = self.run_val()
+                current_val_loss = val_outs.get("Losses/val_vos_loss", None) # if you don't want early stop,  comment from here to till break
+            
+                if current_val_loss is not None:
+                    if current_val_loss < best_val_loss:
+                        best_val_loss = current_val_loss
+                        patience_counter = 0
+                        logging.info(f"✅ New best val loss: {best_val_loss:.6f}")
+                        # Optionally save best checkpoint here
+                    else:
+                        patience_counter += 1
+                        logging.info(f"⏳ Early stopping patience: {patience_counter}/{early_stop_patience}")
+                        if patience_counter >= early_stop_patience:
+                            logging.info("🛑 Early stopping triggered.")
+                            break
+
+                    self.logger.log("early_stop/patience", patience_counter, self.epoch)
+                    self.logger.log("early_stop/best_val_loss", best_val_loss, self.epoch)
+                
+
 
             if self.distributed_rank == 0:
                 self.best_meter_values.update(self._get_trainer_state("train"))
@@ -568,10 +755,21 @@ class Trainer:
             return
 
         dataloader = self.val_dataset.get_loader(epoch=int(self.epoch))
+
+   
         outs = self.val_epoch(dataloader, phase=Phase.VAL)
+        # epoch_outs = {f"epoch/{k}": v for k, v in outs.items()}
+
         del dataloader
         gc.collect()
-        self.logger.log_dict(outs, self.epoch)  # Logged only on rank 0
+
+
+        self.logger.log_dict(outs, step=self.epoch, phase="val")
+
+
+
+
+
 
         if self.distributed_rank == 0:
             with g_pathmgr.open(
@@ -579,6 +777,9 @@ class Trainer:
                 "a",
             ) as f:
                 f.write(json.dumps(outs) + "\n")
+
+
+        return outs
 
     def val_epoch(self, val_loader, phase):
         batch_time = AverageMeter("Batch Time", self.device, ":.2f")
@@ -656,6 +857,8 @@ class Trainer:
                 time.time() - self.start_time + self.ckpt_time_elapsed
             )
 
+            self.steps[Phase.VAL] += 1
+
             if torch.cuda.is_available():
                 mem.update(reset_peak_usage=True)
 
@@ -663,12 +866,19 @@ class Trainer:
                 progress.display(data_iter)
 
             if data_iter % self.logging_conf.log_scalar_frequency == 0:
+                if self.logger.wandb and get_rank() == 0:
+                    self.logger.wandb.log({"val_step": self.steps[Phase.VAL]}, step=self.steps[Phase.VAL])
+
+
+            
                 # Log progress meters.
                 for progress_meter in progress.meters:
                     self.logger.log(
                         os.path.join("Step_Stats", phase, progress_meter.name),
                         progress_meter.val,
                         self.steps[Phase.VAL],
+                        phase=phase,   # <--- add this
+
                     )
 
             if data_iter % 10 == 0:
@@ -681,6 +891,23 @@ class Trainer:
                 unwrap_ddp_if_wrapped(model).on_validation_epoch_end()
 
         out_dict = self._log_meters_and_save_best_ckpts(curr_phases)
+
+        if self.logger.wandb and get_rank() == 0:
+            self.logger.wandb.log({"epoch_step": self.epoch}, step=self.logger.step_counters['epoch_steps'])
+
+            # self.logger.wandb.log(
+            #     {"val/loss": out_dict["Losses/val_all_loss"], "val_epoch": self.epoch},
+            #     step=self.epoch,
+            # )
+                
+        # self.logger.log_dict(out_dict, self.epoch, phase="epoch/val")
+        # flat_val_outs = flatten_dict(out_dict)
+        # self.logger.log_dict(flat_val_outs, step=self.epoch, phase="val")
+
+        # self.logger.log_dict(out_dict, step=epoch, phase="val")
+        self.logger.log_dict(out_dict, step=self.epoch, phase="epoch/val")
+
+
 
         for k, v in loss_mts.items():
             out_dict[k] = v.avg
@@ -781,6 +1008,8 @@ class Trainer:
                                 self.steps[phase],
                             )
 
+
+
                 # Clipping gradients and detecting diverging gradients
                 if self.gradient_clipper is not None:
                     self.scaler.unscale_(self.optim.optimizer)
@@ -796,6 +1025,17 @@ class Trainer:
                 self.scaler.step(self.optim.optimizer)
                 self.scaler.update()
 
+
+                self.global_step += 1
+                self.steps[phase] = self.global_step  # keep phase-local counter in sync
+
+                self.steps[Phase.TRAIN] += 1
+
+                # self.logger.wandb.log({
+                #     "train/loss": loss.item(),
+                #     "train_step": self.steps[Phase.TRAIN]
+                # }, step=self.steps[Phase.TRAIN])
+
                 # measure elapsed time
                 batch_time_meter.update(time.time() - end)
                 end = time.time()
@@ -809,12 +1049,22 @@ class Trainer:
                     progress.display(data_iter)
 
                 if data_iter % self.logging_conf.log_scalar_frequency == 0:
+                    if self.logger.wandb and get_rank() == 0:
+                        self.logger.wandb.log({"train_step": self.steps[phase]}, step=self.steps[phase])
                     # Log progress meters.
                     for progress_meter in progress.meters:
+                        # self.logger.log(
+                        #     os.path.join("Step_Stats", phase, progress_meter.name),
+                        #     progress_meter.val,
+                        #     self.steps[phase],
+                        # )
+
+                        
                         self.logger.log(
                             os.path.join("Step_Stats", phase, progress_meter.name),
                             progress_meter.val,
                             self.steps[phase],
+                            phase=phase,   # <--- add this
                         )
 
             # Catching NaN/Inf errors in the loss
@@ -826,6 +1076,12 @@ class Trainer:
         self._log_sync_data_times(Phase.TRAIN, data_times)
 
         out_dict = self._log_meters_and_save_best_ckpts([Phase.TRAIN])
+        self.logger.log_dict(out_dict, step=self.epoch, phase="epoch/train")
+
+        # self.logger.log_dict(out_dict, self.epoch, phase="epoch/train")
+        # flat_val_outs = flatten_dict(out_dict)
+        # self.logger.log_dict(out_dict, step=self.epoch, phase="train")
+
 
         for k, v in loss_mts.items():
             out_dict[k] = v.avg
@@ -845,6 +1101,8 @@ class Trainer:
                     os.path.join("Step_Stats", phase, "Data Time Synced"),
                     data_time,
                     step,
+                    phase=phase,        # ← add this
+
                 )
 
     def _run_step(
@@ -950,6 +1208,8 @@ class Trainer:
             os.path.join("Step_Stats", phase, self.time_elapsed_meter.name),
             self.time_elapsed_meter.val,
             self.steps[phase],
+            phase=phase,        # ← add this
+
         )
 
         logging.info(f"Estimated time remaining: {human_readable_time(time_remaining)}")
@@ -983,8 +1243,11 @@ class Trainer:
                     f"\nMissing in val datasets: {loss_keys - set(val_keys)}"
                 )
 
-    def _setup_components(self):
 
+    # Updated _setup_components method with proper metric definitionstrain_metrics
+    def _setup_components(self):
+        # ... existing code until wandb setup ...
+        
         # Get the keys for all the val datasets, if any
         val_phase = Phase.VAL
         val_keys = None
@@ -997,7 +1260,70 @@ class Trainer:
         self.epoch = 0
         self.steps = {Phase.TRAIN: 0, Phase.VAL: 0}
 
-        self.logger = Logger(self.logging_conf)
+        # Original TB logger
+        base_logger = Logger(self.logging_conf)
+
+        # Init W&B on rank 0 only
+        wandb_run = None
+
+
+
+        if get_rank() == 0:
+            wandb_run = wandb.init(
+                project="medsam2-finetune",
+                name=f"exp_{time.strftime('%Y%m%d_%H%M%S')}",
+                dir=self.logging_conf.log_dir,
+                config=OmegaConf.to_container(OmegaConf.create(self.logging_conf), resolve=True),
+                reinit=True,
+            )
+        
+            # One counter for steps (training)
+            wandb.define_metric("train_step")
+        
+            # One counter for epochs (validation)
+            wandb.define_metric("val_epoch")
+        
+            # Map groups of metrics to the right counter
+            wandb.define_metric("train/*", step_metric="train_step")
+            wandb.define_metric("val/*", step_metric="val_epoch")
+        
+        
+
+        # if get_rank() == 0:
+        #     wandb_run = wandb.init(
+        #         project="medsam2-finetune",
+        #         name=f"exp_{time.strftime('%Y%m%d_%H%M%S')}",
+        #         dir=self.logging_conf.log_dir,
+        #         config=OmegaConf.to_container(OmegaConf.create(self.logging_conf), resolve=True),
+        #         reinit=True,
+        #     )
+
+        #     # CRITICAL: Define metrics with SEPARATE step counters
+        #     # Step-level metrics (per training/validation step)
+        #     wandb.define_metric("train_step")
+        #     wandb.define_metric("val_step") 
+        #     wandb.define_metric("epoch_step")
+            
+        #     # Now define which metrics use which step counter
+        #     wandb.define_metric("train/*", step_metric="train_step")
+        #     wandb.define_metric("val/*", step_metric="val_step")
+            
+        #     # Epoch-level metrics use a separate epoch step counter
+        #     wandb.define_metric("epoch/train/*", step_metric="epoch_step")
+        #     # wandb.define_metric("epoch/val/*", step_metric="epoch_step")
+
+        # Wrap so all existing self.logger.log / log_dict calls go to TB + W&B
+        self.logger = DualLogger(base_logger, wandb_run=wandb_run, rank=self.distributed_rank)
+
+
+        # if isinstance(self.logger, DualLogger) and self.logger.wandb is not None and self.distributed_rank == 0:
+        #     # One immediate test point at step 0
+        #     self.logger.log("debug/ping", 1.0, step=0)
+
+
+
+
+
 
         self.model = instantiate(self.model_conf, _convert_="all")
         print_model_summary(self.model)

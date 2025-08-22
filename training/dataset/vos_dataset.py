@@ -24,21 +24,66 @@ from training.utils.data_utils import Frame, Object, VideoDatapoint
 MAX_RETRIES = 100
 
 
+
+
+# class VOSDataset(VisionDataset):
+
+
+
+    
+
+        
+#     def __init__(
+#         self,
+#         transforms,
+#         training: bool,
+#         video_dataset: VOSRawDataset,
+#         sampler: VOSSampler,
+#         multiplier: int,
+#         always_target=True,
+#         target_segments_available=True,
+#     ):
+#         self._transforms = transforms
+#         self.training = training
+#         self.video_dataset = video_dataset
+
+
+#         # Fix the sampler instantiation
+#         if isinstance(sampler, dict):
+#             # Import at the top of your file if not already there
+#             from hydra.utils import instantiate
+#             self.sampler = instantiate(sampler)
+#         else:
+#             self.sampler = sampler
+#         # self.sampler = sampler
+
+
 class VOSDataset(VisionDataset):
     def __init__(
         self,
-        transforms,
-        training: bool,
-        video_dataset: VOSRawDataset,
-        sampler: VOSSampler,
-        multiplier: int,
+        transforms=None,
+        training: bool = False,
+        video_dataset: VOSRawDataset = None,
+        sampler: VOSSampler = None,
+        multiplier: int = 1,
         always_target=True,
         target_segments_available=True,
     ):
-        self._transforms = transforms
+        self._transforms = transforms if transforms is not None else []
         self.training = training
         self.video_dataset = video_dataset
-        self.sampler = sampler
+        self.multiplier = multiplier
+        self.always_target = always_target
+        self.target_segments_available = target_segments_available
+
+        # Fix the sampler instantiation
+        if isinstance(sampler, dict):
+            from hydra.utils import instantiate
+            self.sampler = instantiate(sampler)
+        else:
+            self.sampler = sampler
+
+
 
         self.repeat_factors = torch.ones(len(self.video_dataset), dtype=torch.float32)
         self.repeat_factors *= multiplier

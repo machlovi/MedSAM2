@@ -32,6 +32,26 @@ def make_tensorboard_logger(log_dir: str, **writer_kwargs: Any):
     )
 
 
+import wandb
+
+def make_wandb_logger(log_dir=None, **kwargs):
+    wandb.init(
+        project="medsam2-finetune",
+        dir=log_dir,
+        **kwargs
+    )
+    return wandb
+
+
+# training/utils/logger.py
+def make_tensorboard_and_wandb_logger(log_dir: str, **kwargs):
+    tb = make_tensorboard_logger(os.path.join(log_dir, "tensorboard"))
+    run = make_wandb_logger(os.path.join(log_dir, "wandb"), **kwargs)
+    from training.trainer import DualLogger  # or move DualLogger here
+    return DualLogger(tb, wandb_run=run, rank=0)
+
+
+
 class TensorBoardWriterWrapper:
     """
     A wrapper around a SummaryWriter object.

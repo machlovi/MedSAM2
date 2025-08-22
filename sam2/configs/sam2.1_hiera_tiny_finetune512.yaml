@@ -209,69 +209,35 @@ trainer:
         - ${scratch.train_video_batch_size}
       datasets:
         - _target_: training.dataset.utils.RepeatFactorWrapper
-          dataset:
+          dataset: 
             _target_: training.dataset.utils.ConcatDataset
             datasets:
-            # CT
+  
+            # - _target_: training.dataset.vos_dataset.VOSDataset
+            #   transforms: ${vos.train_transforms}
+            #   training: true
+            #   video_dataset:
+            #     _target_: training.dataset.vos_raw_dataset.NPZRawDataset
+            #     folder: /gpfs/home/machlm03/Segmentation/MedSAM2/MR_dataset/
+            #   sampler:
+            #     _target_: training.dataset.vos_sampler.RandomUniformSampler
+            #     num_frames: ${scratch.num_frames}
+            #     max_num_objects: ${scratch.max_num_objects}
+            #   multiplier: 1
+
+
             - _target_: training.dataset.vos_dataset.VOSDataset
               transforms: ${vos.train_transforms}
               training: true
               video_dataset:
                 _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                folder: CVPR25/3D_train_npz_random_10percent_16G/CT
+                folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest_Sample/V00_00m_Binary/train/npz/
               sampler:
                 _target_: training.dataset.vos_sampler.RandomUniformSampler
                 num_frames: ${scratch.num_frames}
                 max_num_objects: ${scratch.max_num_objects}
               multiplier: 1
-            # MR
-            - _target_: training.dataset.vos_dataset.VOSDataset
-              transforms: ${vos.train_transforms}
-              training: true
-              video_dataset:
-                _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                folder: CVPR25/3D_train_npz_random_10percent_16G/MR
-              sampler:
-                _target_: training.dataset.vos_sampler.RandomUniformSampler
-                num_frames: ${scratch.num_frames}
-                max_num_objects: ${scratch.max_num_objects}
-              multiplier: 1
-            # PET
-            - _target_: training.dataset.vos_dataset.VOSDataset
-              transforms: ${vos.train_transforms}
-              training: true
-              video_dataset:
-                _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                folder: CVPR25/3D_train_npz_random_10percent_16G/PET
-              sampler:
-                _target_: training.dataset.vos_sampler.RandomUniformSampler
-                num_frames: ${scratch.num_frames}
-                max_num_objects: ${scratch.max_num_objects}
-              multiplier: 10
-            # Ultrasound 3D
-            - _target_: training.dataset.vos_dataset.VOSDataset
-              transforms: ${vos.train_transforms}
-              training: true
-              video_dataset:
-                _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                folder: CVPR25/3D_train_npz_random_10percent_16G/US3D
-              sampler:
-                _target_: training.dataset.vos_sampler.RandomUniformSampler
-                num_frames: ${scratch.num_frames}
-                max_num_objects: ${scratch.max_num_objects}
-              multiplier: 1
-            # Microscopy 3D
-            - _target_: training.dataset.vos_dataset.VOSDataset
-              transforms: ${vos.train_transforms}
-              training: true
-              video_dataset:
-                _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                folder: CVPR25/3D_train_npz_random_10percent_16G/Microscopy
-              sampler:
-                _target_: training.dataset.vos_sampler.RandomUniformSampler
-                num_frames: ${scratch.num_frames}
-                max_num_objects: ${scratch.max_num_objects}
-              multiplier: 1
+         
 
       shuffle: True
       num_workers: ${scratch.num_train_workers}
@@ -367,13 +333,13 @@ trainer:
 
       state_dict:
         _target_: training.utils.checkpoint_utils.load_checkpoint_and_apply_kernels
-        checkpoint_path: checkpoints/sam2.1_hiera_tiny.pt # PATH to SAM 2.1 checkpoint
+        checkpoint_path: /gpfs/home/machlm03/Segmentation/MedSAM2_wokring/checkpoints/sam2.1_hiera_tiny.pt # PATH to SAM 2.1 checkpoint
         ckpt_state_dict_keys: ['model']
 
 launcher:
   num_nodes: 1
-  gpus_per_node: 4
-  experiment_log_dir: exp_log # Path to log directory, defaults to ./sam2_logs/${config_name}
+  gpus_per_node: 2
+  experiment_log_dir: exp_log_binary # Path to log directory, defaults to ./sam2_logs/${config_name}
 
 # SLURM args if running on a cluster
 submitit:
