@@ -260,6 +260,10 @@ if __name__ == "__main__":
         default=None,
         help="whether to launch on a cluster, 0: run locally, 1: run on a cluster",
     )
+
+    parser.add_argument('--train-txt', type=str, default=None)
+    parser.add_argument('--val-txt', type=str, default=None)
+
     parser.add_argument("--partition", type=str, default=None, help="SLURM partition")
     parser.add_argument("--account", type=str, default=None, help="SLURM account")
     parser.add_argument("--qos", type=str, default=None, help="SLURM qos")

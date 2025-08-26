@@ -1,0 +1,142 @@
+[2025-08-04 20:11:30,588] [3757320] [MainThread] [WARNING] (pydicom:82) - get_frame_offsets is deprecated and will be removed in v4.0
+[2025-08-04 20:13:35,903] [3757725] [MainThread] [WARNING] (pydicom:82) - get_frame_offsets is deprecated and will be removed in v4.0
+[2025-08-04 20:15:58,198] [3757998] [MainThread] [INFO] (monailabel.interfaces.utils.app:37) - Initializing App from: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology; studies: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr; conf: {'models': 'deepedit'}
+[2025-08-04 20:16:00,510] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for MONAILabelApp Found: <class 'main.MyApp'>
+[2025-08-04 20:16:00,880] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.sw_fastedit.SWFastEditConfig'>
+[2025-08-04 20:16:00,882] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_spine.LocalizationSpine'>
+[2025-08-04 20:16:00,934] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepedit.DeepEdit'>
+[2025-08-04 20:16:00,936] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_vertebra.SegmentationVertebra'>
+[2025-08-04 20:16:00,938] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_vertebra.LocalizationVertebra'>
+[2025-08-04 20:16:00,939] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_2d.Deepgrow2D'>
+[2025-08-04 20:16:00,941] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_3d.Deepgrow3D'>
+[2025-08-04 20:16:00,951] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_spleen.SegmentationSpleen'>
+[2025-08-04 20:16:01,069] [3757998] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation.Segmentation'>
+[2025-08-04 20:16:01,069] [3757998] [MainThread] [INFO] (main:95) - +++ Adding Model: deepedit => lib.configs.deepedit.DeepEdit
+[2025-08-04 20:16:01,069] [3757998] [MainThread] [INFO] (monailabel.utils.others.generic:187) - Downloading resource: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology/model/pretrained_deepedit_dynunet.pt from https://github.com/Project-MONAI/MONAILabel/releases/download/pretrained/radiology_deepedit_dynunet_multilabel.pt
+[2025-08-04 20:16:05,430] [3757998] [MainThread] [INFO] (lib.configs.deepedit:141) - EPISTEMIC Enabled: False; Samples: 5
+[2025-08-04 20:16:05,430] [3757998] [MainThread] [INFO] (main:98) - +++ Using Models: ['deepedit']
+[2025-08-04 20:16:05,430] [3757998] [MainThread] [INFO] (monailabel.interfaces.app:135) - Init Datastore for: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr
+[2025-08-04 20:16:05,431] [3757998] [MainThread] [INFO] (monailabel.datastore.local:130) - Auto Reload: True; Extensions: ['*.nii.gz', '*.nii', '*.nrrd', '*.jpg', '*.png', '*.tif', '*.svs', '*.xml']
+[2025-08-04 20:16:05,434] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_33 => spleen_33.nii.gz
+[2025-08-04 20:16:05,434] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_16 => spleen_16.nii.gz
+[2025-08-04 20:16:05,434] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_60 => spleen_60.nii.gz
+[2025-08-04 20:16:05,434] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_59 => spleen_59.nii.gz
+[2025-08-04 20:16:05,435] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_22 => spleen_22.nii.gz
+[2025-08-04 20:16:05,435] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_62 => spleen_62.nii.gz
+[2025-08-04 20:16:05,436] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_18 => spleen_18.nii.gz
+[2025-08-04 20:16:05,436] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_9 => spleen_9.nii.gz
+[2025-08-04 20:16:05,436] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_45 => spleen_45.nii.gz
+[2025-08-04 20:16:05,436] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_14 => spleen_14.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_12 => spleen_12.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_40 => spleen_40.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_61 => spleen_61.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_26 => spleen_26.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_21 => spleen_21.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_63 => spleen_63.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_2 => spleen_2.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_38 => spleen_38.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_46 => spleen_46.nii.gz
+[2025-08-04 20:16:05,437] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_24 => spleen_24.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_53 => spleen_53.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_10 => spleen_10.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_49 => spleen_49.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_47 => spleen_47.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_8 => spleen_8.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_3 => spleen_3.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_20 => spleen_20.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_13 => spleen_13.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_17 => spleen_17.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_28 => spleen_28.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_41 => spleen_41.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_29 => spleen_29.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_31 => spleen_31.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_19 => spleen_19.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_32 => spleen_32.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_25 => spleen_25.nii.gz
+[2025-08-04 20:16:05,438] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_56 => spleen_56.nii.gz
+[2025-08-04 20:16:05,439] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_6 => spleen_6.nii.gz
+[2025-08-04 20:16:05,439] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_52 => spleen_52.nii.gz
+[2025-08-04 20:16:05,439] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_27 => spleen_27.nii.gz
+[2025-08-04 20:16:05,439] [3757998] [MainThread] [INFO] (monailabel.datastore.local:594) - Adding New Image: spleen_44 => spleen_44.nii.gz
+[2025-08-04 20:16:05,443] [3757998] [MainThread] [INFO] (monailabel.datastore.local:577) - Invalidate count: 41
+[2025-08-04 20:16:05,445] [3757998] [MainThread] [INFO] (monailabel.datastore.local:151) - Start observing external modifications on datastore (AUTO RELOAD)
+[2025-08-04 20:16:05,623] [3757998] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit => <lib.infers.deepedit.DeepEdit object at 0x15544581fbf0>
+[2025-08-04 20:16:05,624] [3757998] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit_seg => <lib.infers.deepedit.DeepEdit object at 0x1554441becc0>
+[2025-08-04 20:16:08,145] [3757998] [MainThread] [INFO] (monailabel.sam2.infer:65) - Image Cache Initialized: /gpfs/home/machlm03/.cache/monailabel/sam2
+[2025-08-04 20:16:08,145] [3757998] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-04 20:16:08,146] [3757998] [MainThread] [INFO] (timeloop:42) - Registered job <function ImageCache.monitor.<locals>.run_scheduler at 0x155434d5c400>
+[2025-08-04 20:16:08,146] [3757998] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
+[2025-08-04 20:16:08,149] [3757998] [MainThread] [INFO] (monailabel.utils.others.generic:187) - Downloading resource: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology/model/sam2_hiera_large.pt from https://huggingface.co/facebook/sam2-hiera-large/resolve/main/sam2_hiera_large.pt
+[2025-08-04 20:16:17,115] [3757998] [MainThread] [INFO] (monailabel.utils.others.generic:187) - Downloading resource: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology/model/sam2_hiera_l.yaml from https://huggingface.co/facebook/sam2-hiera-large/resolve/main/sam2_hiera_l.yaml
+[2025-08-04 20:16:18,185] [3757998] [MainThread] [INFO] (main:206) - {'deepedit': <lib.infers.deepedit.DeepEdit object at 0x15544581fbf0>, 'deepedit_seg': <lib.infers.deepedit.DeepEdit object at 0x1554441becc0>, 'Histogram+GraphCut': <monailabel.scribbles.infer.HistogramBasedGraphCut object at 0x1554441beab0>, 'GMM+GraphCut': <monailabel.scribbles.infer.GMMBasedGraphCut object at 0x1554441bea20>, 'sam_2d': <monailabel.sam2.infer.Sam2InferTask object at 0x1554441bef90>, 'sam_3d': <monailabel.sam2.infer.Sam2InferTask object at 0x1554441beb70>}
+[2025-08-04 20:16:18,186] [3757998] [MainThread] [INFO] (main:221) - +++ Adding Trainer:: deepedit => <lib.trainers.deepedit.DeepEdit object at 0x1554457e5cd0>
+[2025-08-04 20:16:18,186] [3757998] [MainThread] [INFO] (monailabel.utils.sessions:51) - Session Path: /gpfs/home/machlm03/.cache/monailabel/sessions
+[2025-08-04 20:16:18,186] [3757998] [MainThread] [INFO] (monailabel.utils.sessions:52) - Session Expiry (max): 3600
+[2025-08-04 20:16:18,186] [3757998] [MainThread] [INFO] (monailabel.interfaces.app:469) - App Init - completed
+[2025-08-04 20:16:18,189] [3757998] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-04 20:16:18,189] [3757998] [MainThread] [INFO] (timeloop:42) - Registered job <function MONAILabelApp.on_init_complete.<locals>.run_scheduler at 0x155435033f60>
+[2025-08-04 20:16:18,189] [3757998] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
+[2025-08-04 20:21:40,511] [3759161] [MainThread] [INFO] (monailabel.interfaces.utils.app:37) - Initializing App from: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology; studies: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr; conf: {'models': 'deepedit'}
+[2025-08-04 20:21:41,327] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for MONAILabelApp Found: <class 'main.MyApp'>
+[2025-08-04 20:21:41,402] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.sw_fastedit.SWFastEditConfig'>
+[2025-08-04 20:21:41,404] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_spine.LocalizationSpine'>
+[2025-08-04 20:21:41,429] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepedit.DeepEdit'>
+[2025-08-04 20:21:41,437] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_vertebra.SegmentationVertebra'>
+[2025-08-04 20:21:41,439] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_vertebra.LocalizationVertebra'>
+[2025-08-04 20:21:41,440] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_2d.Deepgrow2D'>
+[2025-08-04 20:21:41,455] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_3d.Deepgrow3D'>
+[2025-08-04 20:21:41,456] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_spleen.SegmentationSpleen'>
+[2025-08-04 20:21:41,459] [3759161] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation.Segmentation'>
+[2025-08-04 20:21:41,459] [3759161] [MainThread] [INFO] (main:95) - +++ Adding Model: deepedit => lib.configs.deepedit.DeepEdit
+[2025-08-04 20:21:42,127] [3759161] [MainThread] [INFO] (lib.configs.deepedit:141) - EPISTEMIC Enabled: False; Samples: 5
+[2025-08-04 20:21:42,127] [3759161] [MainThread] [INFO] (main:98) - +++ Using Models: ['deepedit']
+[2025-08-04 20:21:42,127] [3759161] [MainThread] [INFO] (monailabel.interfaces.app:135) - Init Datastore for: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr
+[2025-08-04 20:21:42,127] [3759161] [MainThread] [INFO] (monailabel.datastore.local:130) - Auto Reload: True; Extensions: ['*.nii.gz', '*.nii', '*.nrrd', '*.jpg', '*.png', '*.tif', '*.svs', '*.xml']
+[2025-08-04 20:21:42,146] [3759161] [MainThread] [INFO] (monailabel.datastore.local:577) - Invalidate count: 0
+[2025-08-04 20:21:42,146] [3759161] [MainThread] [INFO] (monailabel.datastore.local:151) - Start observing external modifications on datastore (AUTO RELOAD)
+[2025-08-04 20:21:42,201] [3759161] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit => <lib.infers.deepedit.DeepEdit object at 0x1554457fbaa0>
+[2025-08-04 20:21:42,201] [3759161] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit_seg => <lib.infers.deepedit.DeepEdit object at 0x155440194e30>
+[2025-08-04 20:21:43,737] [3759161] [MainThread] [INFO] (monailabel.sam2.infer:65) - Image Cache Initialized: /gpfs/home/machlm03/.cache/monailabel/sam2
+[2025-08-04 20:21:43,738] [3759161] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-04 20:21:43,738] [3759161] [MainThread] [INFO] (timeloop:42) - Registered job <function ImageCache.monitor.<locals>.run_scheduler at 0x155425fd9c60>
+[2025-08-04 20:21:43,738] [3759161] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
+[2025-08-04 20:21:43,741] [3759161] [MainThread] [INFO] (main:206) - {'deepedit': <lib.infers.deepedit.DeepEdit object at 0x1554457fbaa0>, 'deepedit_seg': <lib.infers.deepedit.DeepEdit object at 0x155440194e30>, 'Histogram+GraphCut': <monailabel.scribbles.infer.HistogramBasedGraphCut object at 0x155440194ce0>, 'GMM+GraphCut': <monailabel.scribbles.infer.GMMBasedGraphCut object at 0x155445fafc50>, 'sam_2d': <monailabel.sam2.infer.Sam2InferTask object at 0x1554457fba10>, 'sam_3d': <monailabel.sam2.infer.Sam2InferTask object at 0x155440194d40>}
+[2025-08-04 20:21:43,741] [3759161] [MainThread] [INFO] (main:221) - +++ Adding Trainer:: deepedit => <lib.trainers.deepedit.DeepEdit object at 0x1554457caa20>
+[2025-08-04 20:21:43,741] [3759161] [MainThread] [INFO] (monailabel.utils.sessions:51) - Session Path: /gpfs/home/machlm03/.cache/monailabel/sessions
+[2025-08-04 20:21:43,741] [3759161] [MainThread] [INFO] (monailabel.utils.sessions:52) - Session Expiry (max): 3600
+[2025-08-04 20:21:43,741] [3759161] [MainThread] [INFO] (monailabel.interfaces.app:469) - App Init - completed
+[2025-08-04 20:21:43,742] [3759161] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-04 20:21:43,742] [3759161] [MainThread] [INFO] (timeloop:42) - Registered job <function MONAILabelApp.on_init_complete.<locals>.run_scheduler at 0x155425fda520>
+[2025-08-04 20:21:43,742] [3759161] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
+[2025-08-05 10:50:54,252] [962316] [MainThread] [INFO] (monailabel.interfaces.utils.app:37) - Initializing App from: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/radiology; studies: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr; conf: {'models': 'deepedit'}
+[2025-08-05 10:50:55,097] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for MONAILabelApp Found: <class 'main.MyApp'>
+[2025-08-05 10:50:55,284] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.sw_fastedit.SWFastEditConfig'>
+[2025-08-05 10:50:55,303] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_spine.LocalizationSpine'>
+[2025-08-05 10:50:55,350] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepedit.DeepEdit'>
+[2025-08-05 10:50:55,366] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_vertebra.SegmentationVertebra'>
+[2025-08-05 10:50:55,373] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.localization_vertebra.LocalizationVertebra'>
+[2025-08-05 10:50:55,398] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_2d.Deepgrow2D'>
+[2025-08-05 10:50:55,412] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.deepgrow_3d.Deepgrow3D'>
+[2025-08-05 10:50:55,421] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation_spleen.SegmentationSpleen'>
+[2025-08-05 10:50:55,435] [962316] [MainThread] [INFO] (monailabel.utils.others.class_utils:57) - Subclass for TaskConfig Found: <class 'lib.configs.segmentation.Segmentation'>
+[2025-08-05 10:50:55,435] [962316] [MainThread] [INFO] (main:95) - +++ Adding Model: deepedit => lib.configs.deepedit.DeepEdit
+[2025-08-05 10:50:56,024] [962316] [MainThread] [INFO] (lib.configs.deepedit:141) - EPISTEMIC Enabled: False; Samples: 5
+[2025-08-05 10:50:56,024] [962316] [MainThread] [INFO] (main:98) - +++ Using Models: ['deepedit']
+[2025-08-05 10:50:56,024] [962316] [MainThread] [INFO] (monailabel.interfaces.app:135) - Init Datastore for: /gpfs/data/arsoyd01lab/machlm03/Segmentation/MedSAM2/Task09_Spleen/imagesTr
+[2025-08-05 10:50:56,025] [962316] [MainThread] [INFO] (monailabel.datastore.local:130) - Auto Reload: True; Extensions: ['*.nii.gz', '*.nii', '*.nrrd', '*.jpg', '*.png', '*.tif', '*.svs', '*.xml']
+[2025-08-05 10:50:56,056] [962316] [MainThread] [INFO] (monailabel.datastore.local:577) - Invalidate count: 0
+[2025-08-05 10:50:56,056] [962316] [MainThread] [INFO] (monailabel.datastore.local:151) - Start observing external modifications on datastore (AUTO RELOAD)
+[2025-08-05 10:50:56,173] [962316] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit => <lib.infers.deepedit.DeepEdit object at 0x1554523a0e30>
+[2025-08-05 10:50:56,173] [962316] [MainThread] [INFO] (main:129) - +++ Adding Inferer:: deepedit_seg => <lib.infers.deepedit.DeepEdit object at 0x155452c17bc0>
+[2025-08-05 10:50:57,673] [962316] [MainThread] [INFO] (monailabel.sam2.infer:65) - Image Cache Initialized: /gpfs/home/machlm03/.cache/monailabel/sam2
+[2025-08-05 10:50:57,673] [962316] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-05 10:50:57,674] [962316] [MainThread] [INFO] (timeloop:42) - Registered job <function ImageCache.monitor.<locals>.run_scheduler at 0x155444be5bc0>
+[2025-08-05 10:50:57,674] [962316] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (main:206) - {'deepedit': <lib.infers.deepedit.DeepEdit object at 0x1554523a0e30>, 'deepedit_seg': <lib.infers.deepedit.DeepEdit object at 0x155452c17bc0>, 'Histogram+GraphCut': <monailabel.scribbles.infer.HistogramBasedGraphCut object at 0x1554478045c0>, 'GMM+GraphCut': <monailabel.scribbles.infer.GMMBasedGraphCut object at 0x155452ab70e0>, 'sam_2d': <monailabel.sam2.infer.Sam2InferTask object at 0x155452c56510>, 'sam_3d': <monailabel.sam2.infer.Sam2InferTask object at 0x1554478044d0>}
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (main:221) - +++ Adding Trainer:: deepedit => <lib.trainers.deepedit.DeepEdit object at 0x1554478044a0>
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (monailabel.utils.sessions:51) - Session Path: /gpfs/home/machlm03/.cache/monailabel/sessions
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (monailabel.utils.sessions:52) - Session Expiry (max): 3600
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (monailabel.interfaces.app:469) - App Init - completed
+[2025-08-05 10:50:57,676] [962316] [MainThread] [INFO] (timeloop:60) - Starting Timeloop..
+[2025-08-05 10:50:57,677] [962316] [MainThread] [INFO] (timeloop:42) - Registered job <function MONAILabelApp.on_init_complete.<locals>.run_scheduler at 0x155444be6480>
+[2025-08-05 10:50:57,677] [962316] [MainThread] [INFO] (timeloop:63) - Timeloop now started. Jobs will run based on the interval set
