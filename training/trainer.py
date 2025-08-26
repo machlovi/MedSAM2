@@ -715,28 +715,49 @@ class Trainer:
             #     self.run_val()
 
 
-            ## add early stopping,
+
+            # ---------------- Validation + Early Stopping ----------------
             if self.is_intermediate_val_epoch(self.epoch):
                 val_outs = self.run_val()
-                current_val_loss = val_outs.get("Losses/val_vos_loss", None) # if you don't want early stop,  comment from here to till break
-            
+                current_val_loss = val_outs.get("Losses/val_vos_loss", None)
+
                 if current_val_loss is not None:
                     if current_val_loss < best_val_loss:
+                        # improvement found
                         best_val_loss = current_val_loss
                         patience_counter = 0
                         logging.info(f"✅ New best val loss: {best_val_loss:.6f}")
-                        # Optionally save best checkpoint here
+
+                        # Save BEST checkpoint
+                        if self.distributed_rank == 0:
+                            best_ckpt_path = os.path.join(
+                                self.logging_conf.log_dir, "checkpoint_best.pt"
+                            )
+                            self._save_checkpoint(
+                                self._get_trainer_state("train"), best_ckpt_path
+                            )
                     else:
+                        # no improvement
                         patience_counter += 1
-                        logging.info(f"⏳ Early stopping patience: {patience_counter}/{early_stop_patience}")
+                        logging.info(
+                            f"⏳ Early stopping patience: {patience_counter}/{early_stop_patience}"
+                        )
                         if patience_counter >= early_stop_patience:
                             logging.info("🛑 Early stopping triggered.")
+
+                            # Ensure best checkpoint is saved before exit
+                            if self.distributed_rank == 0:
+                                best_ckpt_path = os.path.join(
+                                    self.logging_conf.log_dir, "checkpoint_best.pt"
+                                )
+                                self._save_checkpoint(
+                                    self._get_trainer_state("train"), best_ckpt_path
+                                )
                             break
 
+                    # log early stopping metrics
                     self.logger.log("early_stop/patience", patience_counter, self.epoch)
                     self.logger.log("early_stop/best_val_loss", best_val_loss, self.epoch)
-                
-
 
             if self.distributed_rank == 0:
                 self.best_meter_values.update(self._get_trainer_state("train"))

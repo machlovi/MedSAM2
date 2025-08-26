@@ -11,3 +11,13 @@ _C.*
 outputs/*
 checkpoints/*.pt
 *.pt
+data/demo_sample.npz
+
+MR_dataset/
+
+exp_log/
+**/.ipynb_checkpoints/
+
+wandb/
+Task09_Spleen/
+._Task09_Spleen
