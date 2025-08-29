@@ -263,6 +263,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--train-txt', type=str, default=None)
     parser.add_argument('--val-txt', type=str, default=None)
+    parser.add_argument('--checkpoint', type=str, default=None)
 
     parser.add_argument("--partition", type=str, default=None, help="SLURM partition")
     parser.add_argument("--account", type=str, default=None, help="SLURM account")
@@ -276,15 +277,28 @@ if __name__ == "__main__":
     parser.add_argument("--dataset-path", type=str, default=None, help="Path to the dataset, overrides cfg.dataset.folder")
     parser.add_argument("--output-path", type=str, default=None, help="Path to the experiment output, overrides cfg.launcher.experiment_log_dir")
     args = parser.parse_args()
+
+
+
     args.use_cluster = bool(args.use_cluster) if args.use_cluster is not None else None
     register_omegaconf_resolvers()
     
     # Override dataset folder and experiment output path if specified
     cfg = compose(config_name=args.config)
+
+    if args.train_txt:
+        cfg.trainer.data.train.datasets[0].dataset.datasets[0].video_dataset.file_list_txt = args.train_txt
+    if args.val_txt:
+        cfg.trainer.data.val.datasets[0].dataset.datasets[0].video_dataset.file_list_txt= args.val_txt
+    
+    if args.checkpoint:
+        cfg.trainer.checkpoint.model_weight_initializer.state_dict.checkpoint_path=args.checkpoint
+
+
+
     if args.dataset_path is not None:
         cfg.dataset.folder = args.dataset_path
     if args.output_path is not None:
-        
         cfg.launcher.experiment_log_dir = args.output_path
     
     main(args, cfg)

@@ -3,15 +3,15 @@
 scratch:
   resolution: 512
 
-  train_video_batch_size: 4 # increase batch size based on your computing
-  num_train_workers: 2
+  train_video_batch_size: 8 # increase batch size based on your computing
+  num_train_workers: 4
   num_frames: 8
   max_num_objects: 7
   base_lr: 5.0e-5
   vision_lr: 3.0e-05
   phases_per_epoch: 1
-  num_epochs: 2
-  val_batch_size: 2
+  num_epochs: 5
+  val_batch_size: 8
 
 
 dataset:
@@ -255,8 +255,8 @@ trainer:
                 video_dataset:
                   _target_: training.dataset.vos_raw_dataset.NPZRawDataset
                   file_list_txt: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/cv_txt_files/train/train_fold0.txt
-                  folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest_Sample/V00_00m_train/
-                  # folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_MultiClass/npz/
+                  # folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest_Sample/V00_00m_train/
+                  folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_MultiClass/npz/
                 sampler:
                   _target_: training.dataset.vos_sampler.RandomUniformSampler
                   num_frames: ${scratch.num_frames}
@@ -287,9 +287,9 @@ trainer:
                 training: false
                 video_dataset:
                   _target_: training.dataset.vos_raw_dataset.NPZRawDataset
-                  file_list_txt: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/cv_txt_files/train/train_fold0.txt
-                  folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest_Sample/V00_00m_train/
-                  # folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_MultiClass/npz/
+                  file_list_txt: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/cv_txt_files/train/val_fold0.txt
+                  # folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest_Sample/V00_00m_train/
+                  folder: /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_MultiClass/npz/
                 sampler:
                   _target_: training.dataset.vos_sampler.EvalSampler
                   # num_frames: ${scratch.num_frames}

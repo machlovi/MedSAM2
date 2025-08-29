@@ -681,19 +681,12 @@ class Trainer:
         
 
         while self.epoch < self.max_epochs:
+
+            
             dataloader = self.train_dataset.get_loader(epoch=int(self.epoch))
             barrier()
             outs = self.train_epoch(dataloader)
-            # epoch_outs = {f"epoch/{k}": v for k, v in outs.items()}
-
-            # self.logger.log_dict(outs, self.epoch)  # Logged only on rank 0
-      
-            # self.logger.log_dict(outs, self.epoch, phase="epoch/train")
             self.logger.log_dict(outs, step=self.global_step, phase="train")
-
-
-
-
 
             # log train to text file.
             if self.distributed_rank == 0:
@@ -711,10 +704,8 @@ class Trainer:
 
             # Run val, not running on last epoch since will run after the
             # loop anyway
-            # if self.is_intermediate_val_epoch(self.epoch):
-            #     self.run_val()
-
-
+            if self.is_intermediate_val_epoch(self.epoch):
+                self.run_val()
 
             # ---------------- Validation + Early Stopping ----------------
             if self.is_intermediate_val_epoch(self.epoch):
@@ -728,14 +719,14 @@ class Trainer:
                         patience_counter = 0
                         logging.info(f"✅ New best val loss: {best_val_loss:.6f}")
 
-                        # Save BEST checkpoint
+                        # Save BEST checkpoint with full model+optimizer state
                         if self.distributed_rank == 0:
-                            best_ckpt_path = os.path.join(
-                                self.logging_conf.log_dir, "checkpoint_best.pt"
+                            self.save_checkpoint(
+                                self.epoch, checkpoint_names=["checkpoint_best"]
                             )
-                            self._save_checkpoint(
-                                self._get_trainer_state("train"), best_ckpt_path
-                            )
+                                  
+                 
+
                     else:
                         # no improvement
                         patience_counter += 1
@@ -747,11 +738,8 @@ class Trainer:
 
                             # Ensure best checkpoint is saved before exit
                             if self.distributed_rank == 0:
-                                best_ckpt_path = os.path.join(
-                                    self.logging_conf.log_dir, "checkpoint_best.pt"
-                                )
-                                self._save_checkpoint(
-                                    self._get_trainer_state("train"), best_ckpt_path
+                                self.save_checkpoint(
+                                    self.epoch, checkpoint_names=["checkpoint_best"]
                                 )
                             break
 
@@ -771,6 +759,8 @@ class Trainer:
         # epoch was incremented in the loop but the val step runs out of the loop
         self.epoch -= 1
 
+
+
     def run_val(self):
         if not self.val_dataset:
             return
@@ -787,18 +777,12 @@ class Trainer:
 
         self.logger.log_dict(outs, step=self.epoch, phase="val")
 
-
-
-
-
-
         if self.distributed_rank == 0:
             with g_pathmgr.open(
                 os.path.join(self.logging_conf.log_dir, "val_stats.json"),
                 "a",
             ) as f:
                 f.write(json.dumps(outs) + "\n")
-
 
         return outs
 
@@ -1288,15 +1272,16 @@ class Trainer:
         wandb_run = None
 
 
-
+        
         if get_rank() == 0:
             wandb_run = wandb.init(
                 project="medsam2-finetune",
-                name=f"exp_{time.strftime('%Y%m%d_%H%M%S')}",
+                name=os.getenv("WANDB_NAME", f"exp_{time.strftime('%Y%m%d_%H%M%S')}"),
                 dir=self.logging_conf.log_dir,
                 config=OmegaConf.to_container(OmegaConf.create(self.logging_conf), resolve=True),
                 reinit=True,
             )
+
         
             # One counter for steps (training)
             wandb.define_metric("train_step")
