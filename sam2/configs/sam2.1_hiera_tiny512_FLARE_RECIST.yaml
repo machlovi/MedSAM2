@@ -2,15 +2,14 @@
 
 scratch:
   resolution: 512
-
   train_video_batch_size: 8 # increase batch size based on your computing
-  num_train_workers: 4
+  num_train_workers: 10
   num_frames: 8
   max_num_objects: 7
   base_lr: 5.0e-5
   vision_lr: 3.0e-05
   phases_per_epoch: 1
-  num_epochs: 5
+  num_epochs: 75
   val_batch_size: 8
 
 
@@ -398,7 +397,7 @@ trainer:
   # initialize from a SAM 2 checkpoint
   checkpoint:
     save_dir: ${launcher.experiment_log_dir}/checkpoints
-    save_freq: 10 # 0 only last checkpoint is saved.
+    save_freq: 1 # 0 only last checkpoint is saved.
     model_weight_initializer:
       _partial_: True
       _target_: training.utils.checkpoint_utils.load_state_dict_into_model
@@ -408,13 +407,14 @@ trainer:
 
       state_dict:
         _target_: training.utils.checkpoint_utils.load_checkpoint_and_apply_kernels
-        checkpoint_path: checkpoints/sam2.1_hiera_tiny.pt # PATH to SAM 2.1 checkpoint
+        checkpoint_path: checkpoints/MedSAM2_latest.pt # PATH to SAM 2.1 checkpoint
+        # checkpoint_path: checkpoints/MedSam2_OAI_fold0.pt
         ckpt_state_dict_keys: ['model']
 
 launcher:
   num_nodes: 1
   gpus_per_node: 4
-  experiment_log_dir: exp_log # Path to log directory, defaults to ./sam2_logs/${config_name}
+  experiment_log_dir: medsam2_exp_log # Path to log directory, defaults to ./sam2_logs/${config_name}
 
 # SLURM args if running on a cluster
 submitit:

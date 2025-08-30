@@ -22,7 +22,7 @@ export CUDA_VISIBLE_DEVICES=0
 # -------------------------
 # Loop over folds
 # -------------------------
-N_FOLDS=2  # Adjust as needed
+N_FOLDS=10  # Adjust as needed
 
 for fold in $(seq 0 $N_FOLDS); do
     train_txt="/gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/cv_txt_files/train/train_fold${fold}.txt"

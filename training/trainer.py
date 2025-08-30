@@ -1275,7 +1275,7 @@ class Trainer:
         
         if get_rank() == 0:
             wandb_run = wandb.init(
-                project="medsam2-finetune",
+                project="medsam2-latest",
                 name=os.getenv("WANDB_NAME", f"exp_{time.strftime('%Y%m%d_%H%M%S')}"),
                 dir=self.logging_conf.log_dir,
                 config=OmegaConf.to_container(OmegaConf.create(self.logging_conf), resolve=True),
