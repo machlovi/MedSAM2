@@ -3,6 +3,8 @@
 
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
+import numpy as np
+
 
 import logging
 
@@ -104,7 +106,33 @@ class SAM2Train(SAM2Base):
             for p in self.image_encoder.parameters():
                 p.requires_grad = False
 
+
+
     def forward(self, input: BatchedVideoDatapoint):
+
+        #         # DEBUG: Analyze object IDs in the batch
+        # print("\n=== BATCH OBJECT ID ANALYSIS ===")
+        # print(f"Batch shape - masks: {input.masks.shape}")
+        # print(f"Batch shape - obj_to_frame_idx: {input.obj_to_frame_idx.shape}")
+        
+        # # Extract all object IDs from metadata
+        # if hasattr(input.metadata, 'unique_objects_identifier'):
+        #     unique_ids = input.metadata.unique_objects_identifier
+        #     print(f"Unique objects identifier shape: {unique_ids.shape}")
+            
+        #     # Get all object IDs (second column)
+        #     all_obj_ids = unique_ids[:, :, 1].flatten()  # [video_id, obj_id, frame_id] -> get obj_id
+        #     unique_obj_ids = torch.unique(all_obj_ids)
+        #     print(f"Unique object IDs in batch: {unique_obj_ids.tolist()}")
+        #     print(f"Number of unique objects: {len(unique_obj_ids)}")
+        
+        # # Check masks per frame
+        # T, O, H, W = input.masks.shape
+        # print(f"Objects per frame: {O}")
+        # print(f"Total frames: {T}")
+        
+        # ... rest of your forward method
+
         if self.training or not self.forward_backbone_per_frame_for_eval:
             # precompute image features on all frames before tracking
             backbone_out = self.forward_image(input.flat_img_batch)
@@ -157,11 +185,25 @@ class SAM2Train(SAM2Base):
         gt_masks_per_frame = {
             stage_id: masks.unsqueeze(1)  # [B, 1, H_im, W_im]
             for stage_id, masks in enumerate(input.masks)
+               
         }
+
+
+
+        # for frame_id, mask in enumerate(input.masks):
+        #     print(f"Frame {frame_id} — object count: {mask.shape[0]}")
+                # DEBUG: Analyze object IDs in the batch
+        # print("\n=== BATCH OBJECT ID ANALYSIS ===")
+        # print(f"Batch shape - masks: {input.masks.shape}")
+        # print(f"Batch shape - obj_to_frame_idx: {input.obj_to_frame_idx.shape}")
+
+
         # gt_masks_per_frame = input.masks.unsqueeze(2) # [T,B,1,H_im,W_im] keep everything in tensor form
         backbone_out["gt_masks_per_frame"] = gt_masks_per_frame
+        # print(gt_masks_per_frame)
         num_frames = input.num_frames
         backbone_out["num_frames"] = num_frames
+        
 
         # Randomly decide whether to use point inputs or mask inputs
         if self.training:
@@ -224,6 +266,7 @@ class SAM2Train(SAM2Base):
         for t in init_cond_frames:
             if not use_pt_input:
                 backbone_out["mask_inputs_per_frame"][t] = gt_masks_per_frame[t]
+                # print("mask as input")
             else:
                 # During training # P(box) = prob_to_use_pt_input * prob_to_use_box_input
                 use_box_input = self.rng.random() < prob_to_use_box_input
@@ -231,6 +274,9 @@ class SAM2Train(SAM2Base):
                     points, labels = sample_box_points(
                         gt_masks_per_frame[t],
                     )
+                    # print("BBX samling ")
+
+
                 else:
                     # (here we only sample **one initial point** on initial conditioning frames from the
                     # ground-truth mask; we may sample more correction points on the fly)
@@ -241,6 +287,8 @@ class SAM2Train(SAM2Base):
                             "uniform" if self.training else self.pt_sampling_for_eval
                         ),
                     )
+                
+                # print(f"bbx_shape_{labels.shape}")
 
                 point_inputs = {"point_coords": points, "point_labels": labels}
                 backbone_out["point_inputs_per_frame"][t] = point_inputs
@@ -296,6 +344,16 @@ class SAM2Train(SAM2Base):
             # Get the image features for the current frames
             # img_ids = input.find_inputs[stage_id].img_ids
             img_ids = input.flat_obj_to_img_idx[stage_id]
+
+            #     # DEBUG: Print the actual indices
+            # print(f"Frame {stage_id} img_ids: {img_ids}")
+            # print(f"Frame {stage_id} img_ids shape: {img_ids.shape}")
+            
+            # # Check if all img_ids point to the same frame
+            # if hasattr(img_ids, 'tolist'):
+            #     ids_list = img_ids.tolist()
+            #     print(f"Frame {stage_id} first few img_ids: {ids_list[:5]}")
+
             if img_feats_already_computed:
                 # Retrieve image features according to img_ids (if they are already computed).
                 current_vision_feats = [x[:, img_ids] for x in vision_feats]
@@ -311,6 +369,10 @@ class SAM2Train(SAM2Base):
                 ) = self._prepare_backbone_features_per_frame(
                     input.flat_img_batch, img_ids
                 )
+                
+                # DEBUG: Check how many objects per frame
+            # num_objects_in_frame = len(img_ids) if isinstance(img_ids, (list, tuple)) else img_ids.numel()
+            # print(f"Frame {stage_id}: Processing {num_objects_in_frame} objects simultaneously")
 
             # Get output masks based on this frame's prompts and previous memory
             current_out = self.track_step(

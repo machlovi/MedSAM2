@@ -115,7 +115,7 @@ def save_predictions_to_dir(
     output_mask.save(output_mask_path)
 
 
-def get_percentile_files(directory, percentiles=(25, 50, 75), exts=(".png", ".jpg", ".jpeg")):
+def get_percentile_files(directory, percentiles=(0, 75), exts=(".png", ".jpg", ".jpeg")):
     """
     Given a directory, return the files at the given percentiles in sorted order.
     Works with a single int or a tuple/list of ints.
@@ -133,6 +133,10 @@ def get_percentile_files(directory, percentiles=(25, 50, 75), exts=(".png", ".jp
     for p in percentiles:
         idx = int(round((p / 100) * (len(files) - 1)))
         selected_files.append(files[idx])
+
+    print("Percentiles requested:", percentiles)
+    print("Selected files:", selected_files)
+
 
     return selected_files
 
@@ -173,15 +177,6 @@ def run_inference_for_case(
 
 
 
-    # For logging/debugging; not strictly required by predictor
-    # middle_frame_index = get_middle_image_filename(masks_dir)
-    # middle_frame= f"{masks_dir}/{middle_frame_index}"
-    # if middle_frame:
-    #     print(f"[INFO] {case_dir.name}: middle frame = {middle_frame}")
-    # else:
-    #     print(f"[WARN] {case_dir.name}: no frames found in {frames_dir}")
-    #     return
-
     # Build predictor
     predictor = build_sam2_video_predictor(
         config_file=str(model_config),
@@ -215,8 +210,12 @@ def run_inference_for_case(
     # is assumed to accept a directory where it can discover needed masks.
 
 
-    initial_prompts_paths = get_percentile_files(masks_dir, percentiles=(50,75))
-    # initial_prompts_paths = get_percentile_files(masks_dir, percentiles=args.percentiles)
+    # initial_prompts_paths = get_percentile_files(masks_dir, percentiles=(50,75))
+
+    initial_prompts_paths = get_percentile_files(masks_dir, percentiles=percentiles)
+
+
+    # print(initial_prompts_paths)
 
     # Build (frame_idx, mask_path) pairs
     initial_prompts = []
@@ -224,7 +223,14 @@ def run_inference_for_case(
         frame_idx = int(Path(mask_path).stem)  # assumes filename is frame number
         initial_prompts.append((frame_idx, mask_path))
 
-    
+    initial_prompts.sort(key=lambda x: x[0])  # Sort based on the `frame_idx`
+    frame_indices = [x[0] for x in sorted(initial_prompts, key=lambda x: x[0])]
+    print(frame_indices)
+
+
+
+
+
     input_palette = None
     # object_ids_set = None
     object_ids_set = set()
@@ -272,31 +278,87 @@ def run_inference_for_case(
     out_video_dir = out_case_dir / OUTPUT_VIDEO_NAME
     ensure_dir(out_video_dir)
 
-    # Propagate masks across the sequence
+    # # Propagate masks across the sequence
+    # video_segments: Dict[int, Dict[int, np.ndarray]] = {}
+    # for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(
+    #             inference_state,       
+    #             reverse=True  ##--> this to process in backward
+    #             ):
+    #     per_obj_output_mask = {
+    #         out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+    #         for i, out_obj_id in enumerate(out_obj_ids)
+    #     }
+    #     video_segments[out_frame_idx] = per_obj_output_mask
+
+    # # Write predictions
+    # for out_frame_idx, per_obj_output_mask in video_segments.items():
+    #     # Guard against any index drift
+    #     if out_frame_idx < 0 or out_frame_idx >= len(frame_names_noext):
+    #         continue
+
+    #     save_predictions_to_dir(
+    #         output_mask_dir=str(out_case_dir),
+    #         video_name=OUTPUT_VIDEO_NAME,
+    #         frame_name=frame_names_noext[out_frame_idx],
+    #         per_obj_output_mask=per_obj_output_mask,
+    #         height=height,
+    #         width=width,
+    #     )
+
+
+
+
+    # video_segments = {}
     video_segments: Dict[int, Dict[int, np.ndarray]] = {}
-    for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(inference_state):
+
+    # Reverse pass (backward from seed)
+    for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(
+        inference_state,
+        start_frame_idx=frame_indices[len(frame_indices)//2],
+        reverse=True
+    ):
         per_obj_output_mask = {
             out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
             for i, out_obj_id in enumerate(out_obj_ids)
         }
         video_segments[out_frame_idx] = per_obj_output_mask
 
-        # Write predictions
-        for out_frame_idx, per_obj_output_mask in video_segments.items():
-            # Guard against any index drift
-            if out_frame_idx < 0 or out_frame_idx >= len(frame_names_noext):
-                continue
+    # Forward pass (from seed onward)
+    for out_frame_idx, out_obj_ids, out_mask_logits in predictor.propagate_in_video(
+        inference_state,
+        start_frame_idx=frame_indices[len(frame_indices)//2],
+        reverse=False
+    ):
+        per_obj_output_mask = {
+            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
+            for i, out_obj_id in enumerate(out_obj_ids)
+        }
+        # Merge or overwrite depending on your logic
+        if out_frame_idx in video_segments:
+            video_segments[out_frame_idx].update(per_obj_output_mask)
+        else:
+            video_segments[out_frame_idx] = per_obj_output_mask
 
-            save_predictions_to_dir(
-                output_mask_dir=str(out_case_dir),
-                video_name=OUTPUT_VIDEO_NAME,
-                frame_name=frame_names_noext[out_frame_idx],
-                per_obj_output_mask=per_obj_output_mask,
-                height=height,
-                width=width,
-            )
 
-    # print(f"[OK] {case_dir.name} -> {out_case_dir}")
+    # write the output masks
+    for out_frame_idx, per_obj_output_mask in video_segments.items():
+
+    # Guard against any index drift
+        if out_frame_idx < 0 or out_frame_idx >= len(frame_names_noext):
+            continue
+        # save raw prediction results
+        save_predictions_to_dir(
+            output_mask_dir=str(out_case_dir),
+            video_name=OUTPUT_VIDEO_NAME,
+            frame_name=frame_names_noext[out_frame_idx],
+            per_obj_output_mask=per_obj_output_mask,
+            height=height,
+            width=width,
+        )
+
+
+
+    print(f"[OK] {case_dir.name} -> {out_case_dir}")
 
 # ---- CLI / Main ----------------------------------------------------------------
 
@@ -349,11 +411,20 @@ def parse_args() -> argparse.Namespace:
     nargs="+",
     default=[50, 75],
     help="Percentiles to select prompt masks from (e.g., 25 50 75)"
+    )
+
+    p.add_argument(
+    "--skip_until",
+    type=str,
+    default=None,
+    help="Skip all cases until this case name is reached (exclusive)."
 )
+
 
     return p.parse_args()
 
 def discover_cases(input_base_dir: Path) -> List[Path]:
+    
     return sorted([p for p in input_base_dir.iterdir() if p.is_dir()])
 
 def main() -> None:
@@ -368,6 +439,19 @@ def main() -> None:
         case_dirs = [input_base_dir / c for c in args.cases]
     else:
         case_dirs = discover_cases(input_base_dir)
+
+        if args.skip_until:
+            skip_flag = False
+            filtered_case_dirs = []
+            for case_dir in case_dirs:
+                if not skip_flag:
+                    if case_dir.name == args.skip_until:
+                        skip_flag = True
+                    continue
+                filtered_case_dirs.append(case_dir)
+            case_dirs = filtered_case_dirs
+
+
 
     if not case_dirs:
         print(f"[ERROR] No case directories found under: {input_base_dir}")
@@ -397,29 +481,114 @@ def main() -> None:
             print(f"[FAIL] {case_dir.name}: {e}")
 
 
+# def run_for_percentile(p):
+#     output_dir = f"/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/OAI/encoder/percentile_test_full/percentile_test_inference_{p}/mask_oai_inference_p{p}/"
+#     sys.argv = [
+#         "OAI_medsam_video_inference.py",
+#         "--input_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/OAI/OAI_percentille_images/imgs/",
+#         "--percentiles", str(p),
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/MSAM_ecnoderfreeze/checkpoints/checkpoint_60.pt",
+
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.2_exp_log/fold5/checkpoints/checkpoint_75.pt",
+
+#         "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_exp_log/5/checkpoints/checkpoint_75.pt",
+
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/5/checkpoints/checkpoint_75.pt",
+
+
+
+        
+
+
+
+#         "--output_base_dir", output_dir,
+#         "--model_config", "configs/sam2.1_hiera_t512.yaml",
+#         "--frames_subdir", "imgs_jpeg",
+#         "--masks_subdir", "masks"
+#     ]
+#     print(f"Running inference for percentile {p} → Output: {output_dir}")
+#     main()
+
+# if __name__ == "__main__":
+#     for p in range(45, 85, 10):
+#         print(p)  # 10 to 90 inclusive
+#         run_for_percentile(p)
+
+# def run_for_percentile(p_list):
+#     output_dir = f"/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/OAI/encoder/selected_percentile/percentile_test_inference_{'_'.join(map(str, p_list))}/mask_oai_inference_p{'_'.join(map(str, p_list))}/"
+#     sys.argv = [
+#         "OAI_medsam_video_inference.py",
+#         # "--input_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/OAI/OAI_percentile_test_images/imgs/",
+#         "--input_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/OAI/OAI_percentille_images/imgs/",
+#         "--percentiles", *map(str, p_list),
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/MSAM_ecnoderfreeze/checkpoints/checkpoint_60.pt",
+       
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.2_exp_log/fold5/checkpoints/checkpoint_75.pt",
+#         "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_exp_log/5/checkpoints/checkpoint_75.pt",
+
+#         # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/5/checkpoints/checkpoint_75.pt",
+
+
+#         "--output_base_dir", output_dir,
+#         "--model_config", "configs/sam2.1_hiera_t512.yaml",
+#         "--frames_subdir", "imgs_jpeg",
+#         "--masks_subdir", "masks"
+#     ]
+#     print(f"Running inference for percentiles {p_list} → Output: {output_dir}")
+#     main()
+
+# p_list_groups = [[35, 45, 55], [45, 55, 65], [55, 65, 75]]
+# if __name__ == "__main__":
+#     for p_group in p_list_groups:
+#         run_for_percentile(p_group)
+
+
+
 
 if __name__ == "__main__":
     # main()
-    # sys.argv = [
-    #     "OAI_medsam_video_inference.py",
-    #     "--input_base_dir", "/gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_test",
-    #     "--output_base_dir", "/gpfs/home/machlm03/Segmentation/OAI_demo/MedSam2_OAI_Inference",
-    #     "--percentiles", "0", "50", "75",  # ✅ split into separate strings
-    #     "--model_checkpoint", "checkpoints/MedSAM2_2411.pt",
-    #     "--model_config", "configs/sam2.1_hiera_t512.yaml",
-    #     "--frames_subdir", "imgs_jpeg",
-    #     "--masks_subdir", "masks"
-    # ]
+    sys.argv = [
+        "OAI_medsam_video_inference.py",
+    #     "--case", "9039972_00m_LEFT_SAG_3D_DESS_WE",
+        "--input_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_demo/IMGS/test/",
+        "--percentiles", "25", "50", "75",  # ✅ split into separate strings
+        # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/checkpoints/MedSAM2_2411.pt",
+        # "--output_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/mask_medsam_inference/",
+
+    
+        # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/MSAM_ecnoderfreeze/checkpoints/checkpoint_30.pt",
+        # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.2_exp_log/fold5/checkpoints/checkpoint_75.pt",
+        # "--output_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/mask_oai_inference/",
+
+        # "--output_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/mask_oai_inference/",
+
+        # "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/medsam2.3_MSAM_ecnoderfreeze/5/checkpoints/checkpoint_75.pt",
+
+        # "--output_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/encoder/mask_oai_inference",
+
+        "--model_checkpoint", "/gpfs/home/machlm03/Segmentation/MedSAM2/MSAM_IWOAI/checkpoints/checkpoint_75.pt",
+
+        "--output_base_dir", "/gpfs/home/machlm03/Segmentation/IWOAI_demo/MSAM_IWOAI_trained",
+        
+        "--model_config", "configs/sam2.1_hiera_t512.yaml",
+        "--frames_subdir", "imgs_jpeg",
+        "--masks_subdir", "masks"
+    ]
     main()
+
+
+# if __name__ == "__main__":
+#     main()
 
 
 """
 Example:
         python OAI_medsam_video_inference.py   \
-        --input_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_test \
-        --output_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_Inference/ \
-        --model_checkpoint /gpfs/home/machlm03/Segmentation/MedSAM2/checkpoints/medsam_oai_checkpoints/MedSam2_OAI_fold1_bestcheckpoint.pt \
+        --input_base_dir /gpfs/home/machlm03/Segmentation/IWOAI_Segmentation_Challenge/test/imgs/ \
+        --output_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/2019_IWOAI_Segmentation_Challenge/Inference_test/ \
+        --model_checkpoint /gpfs/home/machlm03/Segmentation/MedSAM2/checkpoints/MedSAM2_2411.pt \
         --model_config configs/sam2.1_hiera_t512.yaml \
+         --percentiles 25 50 75 \
         --frames_subdir imgs_jpeg \
         --masks_subdir masks
 
@@ -428,11 +597,13 @@ To run a subset of cases by name:
     python run_inference.py ... --cases caseA caseB
 
 
+
 python OAI_medsam_video_inference.py   \
-        --input_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_test \
-        --output_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/medsam2_Inference \
+        --input_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/OAI_TrainTest/V00_00m_test_1.0 \
+        --output_base_dir /gpfs/home/machlm03/Segmentation/OAI_demo/MedSam2_OAI_Inference \
         --model_checkpoint checkpoints/MedSAM2_2411.pt \
         --model_config configs/sam2.1_hiera_t512.yaml \
+        --percentiles 25 50 75 \
         --frames_subdir imgs_jpeg \
         --masks_subdir masks
 """

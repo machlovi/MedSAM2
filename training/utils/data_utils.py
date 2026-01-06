@@ -141,6 +141,7 @@ def collate_fn(
         for t, frame in enumerate(video.frames):
             objects = frame.objects
             for obj in objects:
+                
                 orig_obj_id = obj.object_id
                 orig_frame_idx = obj.frame_index
                 step_t_obj_to_frame_idx[t].append(
@@ -166,6 +167,24 @@ def collate_fn(
     frame_orig_size = torch.stack(
         [torch.stack(id, dim=0) for id in step_t_frame_orig_size], dim=0
     )
+
+    #     # Check unique object IDs across all frames
+    # all_obj_ids = []
+    # for t in range(len(step_t_objects_identifier)):
+    #     for obj_identifier in step_t_objects_identifier[t]:
+    #         video_id, obj_id, frame_id = obj_identifier
+    #         all_obj_ids.append(obj_id.item())
+    
+    # unique_obj_ids = sorted(set(all_obj_ids))
+    # print(f"Unique object IDs found: {unique_obj_ids}")
+    # print(f"Number of unique objects: {len(unique_obj_ids)}")
+    # print(f"Expected: [1, 2, 3, 4, 5, 6, 7]")
+    
+    # # Check objects per frame
+    # for t in range(len(step_t_objects_identifier)):
+    #     frame_obj_ids = [obj[1].item() for obj in step_t_objects_identifier[t]]
+    #     print(f"Frame {t} object IDs: {sorted(frame_obj_ids)}")
+
     return BatchedVideoDatapoint(
         img_batch=img_batch,
         obj_to_frame_idx=obj_to_frame_idx,

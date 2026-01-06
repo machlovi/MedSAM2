@@ -357,6 +357,7 @@ class SAM2VideoPredictor(SAM2Base):
         # using any memory from other frames, like in SAM. Otherwise (if it has been tracked),
         # the input points will be used to correct the already tracked masks.
         is_init_cond_frame = frame_idx not in inference_state["frames_already_tracked"]
+        # print(is_init_cond_frame)
         # whether to track in reverse time order
         if is_init_cond_frame:
             reverse = False
@@ -399,7 +400,33 @@ class SAM2VideoPredictor(SAM2Base):
         _, video_res_masks = self._get_orig_video_res_output(
             inference_state, consolidated_out["pred_masks_video_res"]
         )
+        # print(frame_idx,obj_ids)
         return frame_idx, obj_ids, video_res_masks
+
+
+        # inference_state = {
+        #     "frames_already_tracked": {
+        #         25: {"reverse": False},
+        #         50: {"reverse": False}, 
+        #         75: {"reverse": False}
+        #     },
+        #     "output_dict_per_obj": {
+        #         0: {  # obj_idx for your object
+        #             "cond_frame_outputs": {},      # Empty initially
+        #             "non_cond_frame_outputs": {}   # Empty initially
+        #         }
+        #     },
+        #     "temp_output_dict_per_obj": {
+        #         0: {
+        #             "cond_frame_outputs": {
+        #                 25: current_out_25,  # Features from GT mask 25
+        #                 50: current_out_50,  # Features from GT mask 50
+        #                 75: current_out_75   # Features from GT mask 75
+        #             },
+        #             "non_cond_frame_outputs": {}
+        #         }
+        #     }
+        # }
 
     def _get_orig_video_res_output(self, inference_state, any_res_masks):
         """
@@ -683,6 +710,7 @@ class SAM2VideoPredictor(SAM2Base):
 
         # set start index, end index, and processing order
         if start_frame_idx is None:
+            # print(min(output_dict["cond_frame_outputs"])
             # default: start from the earliest frame with input points
             start_frame_idx = min(output_dict["cond_frame_outputs"])
         if max_frame_num_to_track is None:
@@ -948,6 +976,11 @@ class SAM2VideoPredictor(SAM2Base):
             run_mem_encoder=run_mem_encoder,
             prev_sam_mask_logits=prev_sam_mask_logits,
         )
+        # print(f"Single frame inference completed for frame {frame_idx}, run_mem_encoder={run_mem_encoder}")
+        # if current_out.get("maskmem_features") is not None:
+        #     print(f"  -> Frame {frame_idx} produced memory features: {current_out['maskmem_features'].shape}")
+
+
 
         # optionally offload the output to CPU memory to save GPU space
         storage_device = inference_state["storage_device"]
@@ -991,6 +1024,10 @@ class SAM2VideoPredictor(SAM2Base):
         non-overlapping constraints to object scores. Since their scores changed, their
         memory also need to be computed again with the memory encoder.
         """
+
+            
+
+
         # Retrieve correct image features
         _, _, current_vision_feats, _, feat_sizes = self._get_image_feature(
             inference_state, frame_idx, batch_size
@@ -1002,6 +1039,15 @@ class SAM2VideoPredictor(SAM2Base):
             object_score_logits=object_score_logits,
             is_mask_from_pts=is_mask_from_pts,
         )
+
+        # print(f"  -> Running memory encoder for frame {frame_idx}")
+        # print(f"  -> High-res masks shape: {high_res_masks.shape}")
+        # print(f"  -> Vision features shape: {current_vision_feats.shape}")
+
+
+        # print(f"  -> Memory features encoded for frame {frame_idx}, shape: {maskmem_features.shape}")
+
+
 
         # optionally offload the output to CPU memory to save GPU space
         storage_device = inference_state["storage_device"]

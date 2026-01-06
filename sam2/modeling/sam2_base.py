@@ -184,9 +184,9 @@ class SAM2Base(torch.nn.Module):
         # Model compilation
         if compile_image_encoder:
             # Compile the forward function (not the full module) to allow loading checkpoints.
-            print(
-                "Image encoder compilation is enabled. First forward pass will be slow."
-            )
+            # print(
+            #     "Image encoder compilation is enabled. First forward pass will be slow."
+            # )
             self.image_encoder.forward = torch.compile(
                 self.image_encoder.forward,
                 mode="max-autotune",
@@ -531,6 +531,8 @@ class SAM2Base(torch.nn.Module):
                 frame_idx, cond_outputs, self.max_cond_frames_in_attn
             )
             t_pos_and_prevs = [(0, out) for out in selected_cond_outputs.values()]
+
+            
             # Add last (self.num_maskmem - 1) frames before current frame for non-conditioning memory
             # the earliest one has t_pos=1 and the latest one has t_pos=self.num_maskmem-1
             # We also allow taking the memory frame non-consecutively (with stride>1), in which case
@@ -830,6 +832,19 @@ class SAM2Base(torch.nn.Module):
         # The previously predicted SAM mask logits (which can be fed together with new clicks in demo).
         prev_sam_mask_logits=None,
     ):
+        
+        cond_frames = list(output_dict.get("cond_frame_outputs", {}).keys())
+        non_cond_frames = list(output_dict.get("non_cond_frame_outputs", {}).keys())
+        
+        # print(f"\n=== TRACK_STEP Frame {frame_idx} ===")
+        # print(f"  -> is_init_cond_frame: {is_init_cond_frame}")
+        # print(f"  -> track_in_reverse: {track_in_reverse}")
+        # print(f"  -> run_mem_encoder: {run_mem_encoder}")
+        # print(f"  -> Available conditioning frames: {sorted(cond_frames)}")
+        # print(f"  -> Available non-conditioning frames: {sorted(non_cond_frames)}")
+        # print(f"  -> Total available memory frames: {len(cond_frames) + len(non_cond_frames)}")
+        
+
         current_out, sam_outputs, _, _ = self._track_step(
             frame_idx,
             is_init_cond_frame,
@@ -843,6 +858,9 @@ class SAM2Base(torch.nn.Module):
             track_in_reverse,
             prev_sam_mask_logits,
         )
+
+                # ADD THIS: Print after _track_step (which contains memory attention)
+        # print(f"  -> _track_step completed for frame {frame_idx}")
 
         (
             _,
@@ -861,6 +879,10 @@ class SAM2Base(torch.nn.Module):
             # Only add this in inference (to avoid unused param in activation checkpointing;
             # it's mainly used in the demo to encode spatial memories w/ consolidated masks)
             current_out["object_score_logits"] = object_score_logits
+
+        
+        # print(f"  -> About to encode memory for frame {frame_idx} (run_mem_encoder={run_mem_encoder})")
+
 
         # Finally run the memory encoder on the predicted mask to encode
         # it into a new memory feature (that can be used in future frames)

@@ -16,6 +16,8 @@ import torch.nn.functional as F
 from sam2.utils.misc import mask_to_box
 
 
+
+
 def select_closest_cond_frames(frame_idx, cond_frame_outputs, max_cond_frame_num):
     """
     Select up to `max_cond_frame_num` conditioning frames from `cond_frame_outputs`
@@ -32,6 +34,7 @@ def select_closest_cond_frames(frame_idx, cond_frame_outputs, max_cond_frame_num
     if max_cond_frame_num == -1 or len(cond_frame_outputs) <= max_cond_frame_num:
         selected_outputs = cond_frame_outputs
         unselected_outputs = {}
+    
     else:
         assert max_cond_frame_num >= 2, "we should allow using 2+ conditioning frames"
         selected_outputs = {}
@@ -58,6 +61,52 @@ def select_closest_cond_frames(frame_idx, cond_frame_outputs, max_cond_frame_num
             t: v for t, v in cond_frame_outputs.items() if t not in selected_outputs
         }
 
+    return selected_outputs, unselected_outputs
+
+
+
+def select_closest_cond_frames(frame_idx, cond_frame_outputs, max_cond_frame_num):
+    """
+    Select up to `max_cond_frame_num` conditioning frames from `cond_frame_outputs`
+    """
+    # ADD THIS: Print input information
+    # print(f"    -> MEMORY SELECTION for frame {frame_idx}:")
+    # print(f"       Available cond frames: {list(cond_frame_outputs.keys())}")
+    # print(f"       max_cond_frame_num: {max_cond_frame_num}")
+    
+    if max_cond_frame_num == -1 or len(cond_frame_outputs) <= max_cond_frame_num:
+        selected_outputs = cond_frame_outputs
+        unselected_outputs = {}
+        # ADD THIS: Print when all frames are selected
+        # print(f"       SELECTED ALL conditioning frames: {list(selected_outputs.keys())}")
+    else:
+        assert max_cond_frame_num >= 2, "we should allow using 2+ conditioning frames"
+        selected_outputs = {}
+        # the closest conditioning frame before `frame_idx` (if any)
+        idx_before = max((t for t in cond_frame_outputs if t < frame_idx), default=None)
+        if idx_before is not None:
+            selected_outputs[idx_before] = cond_frame_outputs[idx_before]
+            # print(f"       SELECTED closest BEFORE frame: {idx_before}")
+        # the closest conditioning frame after `frame_idx` (if any)
+        idx_after = min((t for t in cond_frame_outputs if t >= frame_idx), default=None)
+        if idx_after is not None:
+            selected_outputs[idx_after] = cond_frame_outputs[idx_after]
+            # print(f"       SELECTED closest AFTER frame: {idx_after}")
+        # add other temporally closest conditioning frames until reaching a total
+        # of `max_cond_frame_num` conditioning frames.
+        num_remain = max_cond_frame_num - len(selected_outputs)
+        inds_remain = sorted(
+            (t for t in cond_frame_outputs if t not in selected_outputs),
+            key=lambda x: abs(x - frame_idx),
+        )[:num_remain]
+        selected_outputs.update((t, cond_frame_outputs[t]) for t in inds_remain)
+        unselected_outputs = {
+            t: v for t, v in cond_frame_outputs.items() if t not in selected_outputs
+        }
+        # print(f"       SELECTED additional closest frames: {inds_remain}")
+        # print(f"       FINAL SELECTED conditioning frames: {list(selected_outputs.keys())}")
+        # print(f"       UNSELECTED conditioning frames: {list(unselected_outputs.keys())}")
+    
     return selected_outputs, unselected_outputs
 
 

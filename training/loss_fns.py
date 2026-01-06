@@ -111,7 +111,7 @@ def iou_loss(
     pred_mask = inputs.flatten(2) > 0
     gt_mask = targets.flatten(2) > 0
     area_i = torch.sum(pred_mask & gt_mask, dim=-1).float()
-    area_u = torch.sum(pred_mask | gt_mask, dim=-1).float()
+    area_u = torch.sum(pred_mask | gt_mask, dimA=-1).float()
     actual_ious = area_i / torch.clamp(area_u, min=1.0)
 
     if use_l1_loss:

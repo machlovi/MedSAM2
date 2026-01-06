@@ -127,6 +127,8 @@ def main(args, cfg) -> None:
     print(OmegaConf.to_yaml(cfg))
     print("############################################################")
 
+
+
     add_pythonpath_to_sys_path()
     makedir(cfg.launcher.experiment_log_dir)
     with g_pathmgr.open(
@@ -264,6 +266,8 @@ if __name__ == "__main__":
     parser.add_argument('--train-txt', type=str, default=None)
     parser.add_argument('--val-txt', type=str, default=None)
     parser.add_argument('--checkpoint', type=str, default=None)
+    parser.add_argument('--mode', type=str, default="train")
+
 
     parser.add_argument("--partition", type=str, default=None, help="SLURM partition")
     parser.add_argument("--account", type=str, default=None, help="SLURM account")
@@ -290,6 +294,8 @@ if __name__ == "__main__":
         cfg.trainer.data.train.datasets[0].dataset.datasets[0].video_dataset.file_list_txt = args.train_txt
     if args.val_txt:
         cfg.trainer.data.val.datasets[0].dataset.datasets[0].video_dataset.file_list_txt= args.val_txt
+    if args.mode:
+        cfg.trainer.mode=args.mode
     
     if args.checkpoint:
         cfg.trainer.checkpoint.model_weight_initializer.state_dict.checkpoint_path=args.checkpoint

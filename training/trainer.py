@@ -306,6 +306,7 @@ class Trainer:
         optim_overrides: Optional[List[Dict[str, Any]]] = None,
         meters: Optional[Dict[str, Any]] = None,
         loss: Optional[Dict[str, Any]] = None,
+        freeze_encoder=False,
     ):
 
         self._setup_env_variables(env_variables)
@@ -331,6 +332,7 @@ class Trainer:
 
         self._setup_torch_dist_and_backend(cuda, distributed)
         self.global_step = 0   # <--- add this
+        self.freeze_encoder = freeze_encoder
 
         makedir(self.logging_conf.log_dir)
         setup_logging(
@@ -464,7 +466,9 @@ class Trainer:
             f"Done moving components to device {self.device} and local rank {self.local_rank}."
         )
 
-    def save_checkpoint(self, epoch, checkpoint_names=None):
+    # def save_checkpoint(self, epoch, checkpoint_names=None):
+    def save_checkpoint(self, epoch, checkpoint_names=None, best_val_loss=None, patience_counter=None):
+
         checkpoint_folder = self.checkpoint_conf.save_dir
         makedir(checkpoint_folder)
         if checkpoint_names is None:
@@ -492,7 +496,12 @@ class Trainer:
             "steps": self.steps,
             "time_elapsed": self.time_elapsed_meter.val,
             "best_meter_values": self.best_meter_values,
+            "early_stopping": {
+                "best_val_loss": self.best_val_loss,
+                "patience_counter": self.patience_counter
+            }
         }
+
         if self.optim_conf.amp.enabled:
             checkpoint["scaler"] = self.scaler.state_dict()
 
@@ -504,6 +513,7 @@ class Trainer:
             self._save_checkpoint(checkpoint, checkpoint_path)
 
     def _save_checkpoint(self, checkpoint, checkpoint_path):
+        
         """
         Save a checkpoint while guarding against the job being killed in the middle
         of checkpoint saving (which corrupts the checkpoint file and ruins the
@@ -566,7 +576,20 @@ class Trainer:
         logging.info(f"Resuming training from {ckpt_path}")
 
         with g_pathmgr.open(ckpt_path, "rb") as f:
+            # checkpoint = torch.load(f, map_location="cpu")
+
             checkpoint = torch.load(f, map_location="cpu")
+
+
+            if "early_stopping" in checkpoint:
+                self.best_val_loss = checkpoint["early_stopping"]["best_val_loss"]
+                self.patience_counter = checkpoint["early_stopping"]["patience_counter"]
+                logging.info(f"Resuming training from best loss {self.best_val_loss} and {self.patience_counter}")
+            else:
+                self.best_val_loss = float('inf')
+                self.patience_counter = 0
+                logging.info(f"No best loss found")
+
         load_state_dict_into_model(
             model=self.model,
             state_dict=checkpoint["model"],
@@ -675,10 +698,18 @@ class Trainer:
 
 
     def run_train(self):
-        best_val_loss = float('inf')
-        patience_counter = 0
-        early_stop_patience = 10  # 🔧 You can expose this via config if needed
-        
+        # self.best_val_loss = float('inf')
+        # self.patience_counter = 0
+
+        if not hasattr(self, "best_val_loss"):
+            self.best_val_loss = float('inf')
+        if not hasattr(self, "patience_counter"):
+            self.patience_counter = 0
+
+        self.early_stop_patience = 175  # 🔧 You can expose this via config if needed
+
+
+            
 
         while self.epoch < self.max_epochs:
 
@@ -702,50 +733,60 @@ class Trainer:
             del dataloader
             gc.collect()
 
-            # Run val, not running on last epoch since will run after the
-            # loop anyway
-            if self.is_intermediate_val_epoch(self.epoch):
-                self.run_val()
 
             # ---------------- Validation + Early Stopping ----------------
             if self.is_intermediate_val_epoch(self.epoch):
                 val_outs = self.run_val()
-                current_val_loss = val_outs.get("Losses/val_vos_loss", None)
+                # logging.info(f"valiadtion loss:{val_outs:.6f}")
+                self.logger.log_dict(outs, step=self.global_step, phase="val")
 
+
+                current_val_loss = val_outs.get("Losses/val_vos_loss_dice", None)
                 if current_val_loss is not None:
-                    if current_val_loss < best_val_loss:
+                    if current_val_loss < self.best_val_loss:
                         # improvement found
-                        best_val_loss = current_val_loss
-                        patience_counter = 0
-                        logging.info(f"✅ New best val loss: {best_val_loss:.6f}")
+                        self.best_val_loss = current_val_loss
+                        self.patience_counter = 0
+                        logging.info(f"✅ New best val loss: {self.best_val_loss:.6f}")
 
                         # Save BEST checkpoint with full model+optimizer state
                         if self.distributed_rank == 0:
+                            # self.save_checkpoint(
+                            #     self.epoch, checkpoint_names=["checkpoint_best"]
+                            # )
                             self.save_checkpoint(
-                                self.epoch, checkpoint_names=["checkpoint_best"]
-                            )
-                                  
-                 
+                            self.epoch,
+                            checkpoint_names=["checkpoint_best"],
+                            best_val_loss=self.best_val_loss,
+                            patience_counter=self.patience_counter
+                        )
+
 
                     else:
                         # no improvement
-                        patience_counter += 1
+                        self.patience_counter += 1
                         logging.info(
-                            f"⏳ Early stopping patience: {patience_counter}/{early_stop_patience}"
+                            f"⏳ Early stopping patience: {self.patience_counter}/{self.early_stop_patience}"
                         )
-                        if patience_counter >= early_stop_patience:
+                        if self.patience_counter >= self.early_stop_patience:
                             logging.info("🛑 Early stopping triggered.")
 
                             # Ensure best checkpoint is saved before exit
                             if self.distributed_rank == 0:
+                                # self.save_checkpoint(
+                                #     self.epoch, checkpoint_names=["checkpoint_best"]
+                                # )
                                 self.save_checkpoint(
-                                    self.epoch, checkpoint_names=["checkpoint_best"]
-                                )
+                                self.epoch,
+                                checkpoint_names=["checkpoint_best"],
+                                best_val_loss=self.best_val_loss,
+                                patience_counter=self.patience_counter
+                            )
                             break
 
                     # log early stopping metrics
-                    self.logger.log("early_stop/patience", patience_counter, self.epoch)
-                    self.logger.log("early_stop/best_val_loss", best_val_loss, self.epoch)
+                    self.logger.log("early_stop/patience", self.patience_counter, self.epoch)
+                    self.logger.log("early_stop/best_val_loss", self.best_val_loss, self.epoch)
 
             if self.distributed_rank == 0:
                 self.best_meter_values.update(self._get_trainer_state("train"))
@@ -967,6 +1008,21 @@ class Trainer:
 
         # Model training loop
         self.model.train()
+
+        # Freeze encoder parameters
+        if self.freeze_encoder:
+            for name, param in self.model.named_parameters():
+                if "image_encoder" in name:
+                    param.requires_grad = False
+            logging.info("Encoder frozen for this epoch.")
+        else:
+            for name, param in self.model.named_parameters():
+                if "image_encoder" in name:
+                    param.requires_grad = True
+            logging.info("Encoder unfrozen for this epoch.")
+        
+
+        
         end = time.time()
 
         for data_iter, batch in enumerate(train_loader):
@@ -1332,7 +1388,7 @@ class Trainer:
 
 
         self.model = instantiate(self.model_conf, _convert_="all")
-        print_model_summary(self.model)
+        print_model_summary(self.model,self.freeze_encoder)
 
         self.loss = None
         if self.loss_conf:
@@ -1378,7 +1434,7 @@ class Trainer:
         return core_loss
 
 
-def print_model_summary(model: torch.nn.Module, log_dir: str = ""):
+def print_model_summary(model: torch.nn.Module,freeze_encoder, log_dir: str = ""):
     """
     Prints the model and the number of parameters in the model.
     # Multiple packages provide this info in a nice table format
@@ -1387,6 +1443,13 @@ def print_model_summary(model: torch.nn.Module, log_dir: str = ""):
     # https://github.com/sksq96/pytorch-summary
     # https://github.com/nmhkahn/torchsummaryX
     """
+    if freeze_encoder:
+        for name, param in model.named_parameters():
+            if "image_encoder" in name:
+                param.requires_grad = False
+        logging.info("Encoder frozen before parameter summary.")
+
+    
     if get_rank() != 0:
         return
     param_kwargs = {}
